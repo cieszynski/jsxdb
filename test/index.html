@@ -2,18 +2,11 @@
 <html lang="en">
 
 <head>
-    <title>JSxdb Test</title>
+    <title>JSxDB Test</title>
     <meta charset="utf-8">
 
     <style>
-        p.default {
-            background-color: #eee;
-        }
 
-        p.error {
-            color: white;
-            background-color: red;
-        }
     </style>
 </head>
 
@@ -23,172 +16,56 @@
         <input type="search">
     </main>
 
-    <script>
-        console.debug = (str) => {
-            document
-                .querySelector('main')
-                .insertAdjacentHTML("beforeend", `<p>${str}</p>`);
-        }
-
-        console.info = (str) => {
-            document
-                .querySelector('main')
-                .insertAdjacentHTML("beforeend", `<p style="background: #0000ff11">${str}</p>`);
-        }
-
-        console.error = (str) => {
-            document
-                .querySelector('main')
-                .insertAdjacentHTML("beforeend", `<p style="background: #ff000011">${str}</p>`);
-        }
-
-
-    </script>
     <script type="module">
-        import { JSxdb } from '../jsxdb.js';
+        import JSxDB from '../jsxdb.js';
 
         const runTest = async () => {
 
-            const db = await JSxdb.init("test.db", {
+            const db = await JSxDB.init("test.db", {
                 1: {
                     user: "@id, firstname, lastname",
                 },
             });
             try {
                 const [store1] = await db.write("user");
+                const count = await store1.count();
 
-                for await (
-                    const item of [
-                        { firstname: "a", lastname: "A" },
-                        { firstname: "b", lastname: "B" },
-                        { firstname: "c", lastname: "C" },
-                    ]
-                ) {
-                    store1.add(item);
+                if (!count) {
+                    for await (
+                        const item of [
+                            { firstname: "a", lastname: "A" },
+                            { firstname: "b", lastname: "B" },
+                            { firstname: "c", lastname: "C" },
+                        ]
+                    ) {
+                        store1.add(item);
+                    }
                 }
-
                 const result = await store1
                     .where('firstname', 'a')
                     .and('lastname', '<=', 'C')
-                    //.limit(2)
+                    //.or('lastname', '<=', 'C')
+                    .limit(2)
+                    .reverse()
                     .query();
 
                 console.table(result);
-                store1.clear();
-            db.close();
+
+                const dump = await store1.getAllRecords();
+
+                console.log(dump)
+
+                const dump2 = await store1.getAll();
+
+                console.log(dump2)
+
+                // store1.clear();
+                db.close();
 
             } catch (ex) { console.error(ex) }
         }
 
         runTest();
-    </script>
-    <script type="module1">
-        import { JSxdb } from '../jsxdb.js';
-
-        Object.prototype.fromDotNotation = (path, value) => {
-            return path.split('.').reduceRight((prev, cur) => {
-                const o = {};
-                o[cur] = prev;
-                return o;
-            }, value)
-        }
-
-        const report = (str, cls = 'default') => {
-            document.querySelector('main').insertAdjacentHTML("beforeend", `<p class="${cls}">${str}`);
-        }
-
-        const data = [
-            { firstname: 'Albert', lastname: 'Einstein', uuid: 1 },
-            { firstname: 'Isaac', lastname: 'Newton', uuid: 2 },
-            { firstname: 'Marie', lastname: 'Curie', uuid: 3 },
-            { firstname: 'Pierre', lastname: 'Curie', uuid: 4 }
-        ]
-
-        const stores = {
-            outOfLineKeyNoIndeces: "",
-            outOfLineKeyAutoincrementNoIndeces: "@",
-            inlineKeyAutoincrementNoIndeces: "@id",
-            outOfLineKeyOneIndex: ", firstname",
-            inlineKeyOneIndex: "id, firstname",
-            inlineKeyAutoincrementOneIndex: "@id, firstname",
-            inlineKeyAutoincrementTwoIndex: "@id, firstname, lastname",
-            inlineKeyAutoincrementThreeIndexOneUnique: "@id, firstname, lastname, !uuid",
-            inlineKeyAutoincrementTwoIndexArray: "@id, *firstname, lastname",
-            inlineKeyAutoincrementTwoIndexCompound: "@id, firstname, lastname",
-            inlineKeyPathOneIndex: "my.key, firstname",
-            compoundKeyOneIndex: "firstname+lastname, firstname"
-        }
-
-        JSxdb.init("test.db", { 1: stores })
-            .then(db => {
-                return db.write(...Object.keys(stores));
-            })
-            .then(arr => {
-
-                arr.forEach(store => {
-                    report(`${store.name}: autoincrement: ${store.autoincrement}`);
-                    report(`${store.name}: indexnames: ${store.indexnames}`);
-                    report(`${store.name}: keypath: ${store.keypath}`);
-                });
-
-                arr.forEach(store => {
-                    switch (true) {
-                        case !!store.autoincrement:
-                            //console.log(store.name)
-                            data.forEach(datum => {
-                                store.add(datum)
-                            });
-                            break
-                        case !!store.keypath:
-                            switch (true) {
-                                case (typeof store.keypath === 'object'):
-                                    // compoundKeyOneIndex object
-                                    console.log('A', store.name, store.keypath)
-                                    data.forEach(datum => {
-                                        store.add(datum)
-                                    });
-                                    break;
-                                case (store.keypath.includes('.')):
-                                    // inlineKeyPathOneIndex string
-                                    data.forEach((datum, idx) => {
-                                        Object.assign(datum, Object.fromDotNotation(store.keypath, idx))
-                                        store.add(datum);
-                                    });
-                                    break;
-                                default:
-                                    data.forEach((datum, idx) => {
-                                        datum[store.keypath] = idx;
-                                        store.add(datum)
-                                    });
-                            }
-                            break
-                        default:
-                            //console.log('X', store.name, !!store.keypath && store.keypath)
-                            data.forEach((datum, idx) => {
-                                store.add(datum, idx)
-                            });
-                    }
-                });
-
-                const [outOfLineKeyNoIndeces,
-                    outOfLineKeyAutoincrementNoIndeces,
-                    inlineKeyAutoincrementNoIndeces,
-                    outOfLineKeyOneIndex,
-                    inlineKeyOneIndex,
-                    inlineKeyAutoincrementOneIndex,
-                    inlineKeyAutoincrementTwoIndex,
-                    inlineKeyAutoincrementThreeIndexOneUnique,
-                    inlineKeyAutoincrementTwoIndexArray,
-                    inlineKeyAutoincrementTwoIndexCompound,
-                    inlineKeyPathOneIndex,
-                    compoundKeyOneIndex
-                ] = arr;
-
-                // compoundKeyOneIndex.getAll(IDBKeyRange.bound(['Albert', 'A'], ['Pierre', 'C']))
-                //     .then(result=>console.log(result))
-            })
-            .catch(error => report(error))
-            .finally(() => report('done.'));
     </script>
 </body>
 

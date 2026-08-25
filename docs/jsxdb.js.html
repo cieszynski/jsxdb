@@ -1,4 +1,32 @@
-// MIT License
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: jsxdb.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: jsxdb.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>// MIT License
 
 // Copyright (c) 2026 Stephan Cieszynski
 
@@ -13,7 +41,7 @@
 /**
  * @kind function
  * @param {String} permutable
- * @returns {String[]}
+ * @returns {Array.&lt;String>}
  */
 const permutation = (permutable) => {
     const arr = [];
@@ -49,9 +77,9 @@ const prepare = (...keyRangeParams) => {
                 return JSxDB.gt(data);
             case ">=":
                 return JSxDB.ge(data);
-            case "<":
+            case "&lt;":
                 return JSxDB.lt(data);
-            case "<=":
+            case "&lt;=":
                 return JSxDB.le(data);
             case "=":
                 return JSxDB.eq(data);
@@ -226,7 +254,7 @@ class Store {
 
     /**
      * @kind member
-     * @type {Array.<String>}
+     * @type {Array.&lt;String>}
      * @readonly
      */
     get indexnames() {
@@ -294,10 +322,10 @@ class Store {
             request.onsuccess = (event) => {
                 const cursor = event.target.result;
 
-                if (cursor && (!(limit && promises.length >= limit))) {
+                if (cursor &amp;&amp; (!(limit &amp;&amp; promises.length >= limit))) {
                     // check more conditions,
                     // to fullfill, every condition must passed
-                    for (let n = 0; n < args.length; n += 2) {
+                    for (let n = 0; n &lt; args.length; n += 2) {
                         const indexName = args.shift();
                         const keyRange = args.shift();
 
@@ -433,14 +461,14 @@ class Store {
 
     /**
      * @kind function
-     * @param {KeyOrKeyRange} keyOrKeyRange
+     * @param {*} keyOrKeyRange
      * @returns {Promise}
      */
     count = (keyOrKeyRange) => this.#execute("count", keyOrKeyRange);
 
     /**
      * @kind function
-     * @param {KeyOrKeyRange} keyOrKeyRange
+     * @param {*} keyOrKeyRange
      * @returns {Promise}
      */
     delete = (keyOrKeyRange) => this.#execute("delete", keyOrKeyRange);
@@ -485,15 +513,15 @@ class Store {
 
     /**
      * @kind function
-     * @param {KeyOrKeyRange} keyOrKeyRange
+     * @param {*} keyOrKeyRange
      * @returns {Promise}
      */
     getKey = (keyOrKeyRange) => this.#execute("getKey", keyOrKeyRange);
 
     /**
      * @kind function
-     * @param {Object} obj
-     * @param {Key} key
+     * @param {*} obj
+     * @param {*} key
      * @returns {Promise}
      */
     put = (obj, key) => this.#execute("put", obj, key);
@@ -513,9 +541,9 @@ class Store {
 
     /**
      * @kind function
-     * @param {String} indexName
-     * @param {String} str
-     * @param {Boolean} [startsWith=false]
+     * @param {*} indexName
+     * @param {*} str
+     * @param {*} [startsWith=false]
      * @returns {Promise}
      */
     ignoreCase = (indexName, str, startsWith = false) =>
@@ -546,7 +574,7 @@ class Store {
                     }
 
                     if (
-                        (startsWith && value.indexOf(permutations[n]) === 0) ||
+                        (startsWith &amp;&amp; value.indexOf(permutations[n]) === 0) ||
                         value === permutations[n]
                     ) {
                         result.push(cursor.value);
@@ -587,7 +615,7 @@ class Database {
 
     /**
      * @kind member
-     * @type {Array.<String>}
+     * @type {Array.&lt;String>}
      * @readonly
      */
     get storenames() {
@@ -607,7 +635,7 @@ class Database {
      * @private
      * @kind function
      * @param {Boolean} readonly
-     * @param  {...String} storeNames
+     * @param  {...any} storeNames
      * @returns {Promise}
      */
     #readwrite = (readonly = false, ...storeNames) => {
@@ -624,14 +652,14 @@ class Database {
     /**
      * @kind function
      * @param  {...String} storeNames One or more store names, separeted by comma
-     * @returns {Store[]} Array of stores
+     * @returns {Array.&lt;Store>} Array of stores
      */
     read = (...storeNames) => this.#readwrite(true, ...storeNames);
 
     /**
      * @kind function
      * @param  {...String} storeNames
-     * @returns {Store[]} Array of stores
+     * @returns {Store[]}
      */
     write = (...storeNames) => this.#readwrite(false, ...storeNames);
 
@@ -649,7 +677,7 @@ class Database {
  * @param {Object} scheme
  */
 const onupgradeneeded = (db, oldVersion, newVersion, scheme) => {
-    for (let version = oldVersion + 1; version <= newVersion; version++) {
+    for (let version = oldVersion + 1; version &lt;= newVersion; version++) {
         Object.entries(scheme[version]).forEach(([storeName, definition]) => {
             const [keypath, ...indexes] = definition.split(/\s*(?:,)\s*/);
 
@@ -830,3 +858,26 @@ const JSxDB = {
 };
 
 export default JSxDB;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-jsxdb.html">jsxdb</a></li></ul><h3>Classes</h3><ul><li><a href="module-jsxdb-Database.html">Database</a></li><li><a href="module-jsxdb-Query.html">Query</a></li><li><a href="module-jsxdb-Store.html">Store</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Aug 25 2026 22:28:12 GMT+0200 (Mitteleuropäische Sommerzeit)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>CookBook: Dump</title>
+    <meta charset="utf-8">
+    <style>
+
+    </style>
+
+    <script type="module">
+
+        import JSxDB from "../jsxdb.mjs";
+       // import { JSxDB } from "../jsxdb.mjs";
+        import { preparedb } from './utils.mjs';
+
+        console.log(JSxDB)
+if(0){
+        async function run() {
+
+            const db = await preparedb();
+
+            JSxDB.remove(db.name)
+                .then(() => {
+                    console.log('db removed')
+                })
+                .catch(error => {
+                    console.error(error)
+                })
+
+            db.close();
+        }
+
+        run()}
+    </script>
+</head>
+
+<body>
+    <button id="bla">Dump</button>
+</body>
+
+</html>

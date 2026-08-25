@@ -116,12 +116,12 @@
     <hr>
     <main></main>
     <script type="module">
-        import { JSxdb } from '../jsxdb.js';
+        import JSxDB from "../jsxdb.mjs";
 
         addEventListener('load', async event => {
 
             // prepare database
-            const db = await JSxdb.init("searchfield.db", {
+            const db = await JSxDB.init("searchfield.db", {
                 1: {
                     values: "@id, name",
                 },
@@ -147,7 +147,7 @@
             inputbox.addEventListener('focus', async event => {
 
                 async function oninput(event) {
-                    const db = await JSxdb.open('searchfield.db');
+                    const db = await JSxDB.open('searchfield.db');
 
                     const [store1] = await db.read("values");
 

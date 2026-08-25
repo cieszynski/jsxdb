@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>CookBook: Compund key</title>
+    <meta charset="utf-8">
+    <style>
+        input {
+            width: 200px;
+        }
+
+        main {
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+
+        output {
+            text-overflow: ellipsis;
+            /* Both of the following are required for text-overflow */
+            white-space: nowrap;
+            overflow: hidden;
+            display: block;
+            width: 100%;
+
+            &:empty::after {
+                content: 'The results will appear here...';
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>CookBook: Compund index</h1>
+        <form onsubmit="return false" spellcheck="false" autocomplete="off">
+            <search>
+                <input type="search" placeholder="girls' names beginning with A">
+                <hr>
+                <output></output>
+            </search>
+        </form>
+    </header>
+    <hr>
+    <main></main>
+    <script type="module">
+        import { JSxdb } from '../jsxdb.js';
+
+        addEventListener('load', async event => {
+
+            const db = await JSxdb.init('compoundindece.db', {
+                1: {
+                    user: "@id, lastname+firstname+age"
+                }
+            });
+
+
+            const [store1] = await db.write("user");
+            const count = await store1.count();
+
+            // fill the db only one times
+            if (!count) {
+                await store1.add({
+                    firstname: 'Rickey', lastname: 'Sanford', age: 35
+                });
+
+                await store1.add({
+                    firstname: 'Tara', lastname: 'Sanford', age: 27
+                });
+
+                await store1.add({
+                    firstname: 'Tara', lastname: 'Sanford', age: 29
+                });
+
+                await store1.add({
+                    firstname: 'Linda', lastname: 'Pittman', age: 22
+                });
+
+                await store1.add({
+                    firstname: 'Dorsey', lastname: 'Pittman', age: 27
+                });
+
+            }
+
+            const result = await store1
+                .where('lastname+firstname+age',
+                    JSxdb.between(['A'], ['T'])
+                ).reverse().query()
+
+            console.table(result)
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>CookBook: Compund key</title>
+    <meta charset="utf-8">
+    <style>
+        input {
+            width: 200px;
+        }
+
+        main {
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+
+        output {
+            text-overflow: ellipsis;
+            /* Both of the following are required for text-overflow */
+            white-space: nowrap;
+            overflow: hidden;
+            display: block;
+            width: 100%;
+
+            &:empty::after {
+                content: 'The results will appear here...';
+            }
+        }
+    </style>
+    <script>
+        const names = [{ firstname: 'Cynthia', lastname: 'Villegas' },
+        { firstname: 'Florencio', lastname: 'Trevino' },
+        { firstname: 'Randall', lastname: 'Grant' },
+        { firstname: 'Cornell', lastname: 'Davies' },
+        { firstname: 'Jackie', lastname: 'Turner' },
+        { firstname: 'Theron', lastname: 'Bender' },
+        { firstname: 'Graig', lastname: 'Hudson' },
+        { firstname: 'Elena', lastname: 'Moore' },
+        { firstname: 'Frieda', lastname: 'Salazar' },
+        { firstname: 'Beulah', lastname: 'Ryan' },
+        { firstname: 'Rickey', lastname: 'Sanford' },
+        { firstname: 'Sheryl', lastname: 'Proctor' },
+        { firstname: 'Harrison', lastname: 'Briggs' },
+        { firstname: 'Maxine', lastname: 'Sparks' },
+        { firstname: 'Tara', lastname: 'Hebert' },
+        { firstname: 'Eddie', lastname: 'Powell' },
+        { firstname: 'Dee', lastname: 'Collier' },
+        { firstname: 'Dorsey', lastname: 'Pittman' },
+        { firstname: 'Rey', lastname: 'Ortega' },
+        { firstname: 'Jared', lastname: 'Mcbride' },
+        { firstname: 'Ellis', lastname: 'Salas' },
+        { firstname: 'Greta', lastname: 'Vasquez' },
+        { firstname: 'Norberto', lastname: 'Simpson' },
+        { firstname: 'Tyler', lastname: 'Stuart' },
+        { firstname: 'Laurence', lastname: 'Riddle' },
+        { firstname: 'Marianne', lastname: 'Arias' },
+        { firstname: 'Marina', lastname: 'Wyatt' },
+        { firstname: 'Marilyn', lastname: 'Stanton' },
+        { firstname: 'Candy', lastname: 'Newton' },
+        { firstname: 'Gary', lastname: 'Sims' },
+        { firstname: 'Hollis', lastname: 'Henderson' },
+        { firstname: 'Roxanne', lastname: 'Pratt' },
+        { firstname: 'Allan', lastname: 'Chapman' },
+        { firstname: 'Ida', lastname: 'Roman' },
+        { firstname: 'Giovanni', lastname: 'Hicks' },
+        { firstname: 'Mauricio', lastname: 'Wade' },
+        { firstname: 'Laurel', lastname: 'Juarez' },
+        { firstname: 'Marcel', lastname: 'Leonard' },
+        { firstname: 'Faye', lastname: 'Shepherd' },
+        { firstname: 'Casey', lastname: 'Maynard' },
+        { firstname: 'Twila', lastname: 'George' },
+        { firstname: 'Leanna', lastname: 'Paul' },
+        { firstname: 'Kermit', lastname: 'Hendrix' },
+        { firstname: 'Raquel', lastname: 'Gillespie' },
+        { firstname: 'Estella', lastname: 'Bradshaw' },
+        { firstname: 'Duncan', lastname: 'Ayala' },
+        { firstname: 'Tracy', lastname: 'Mahoney' },
+        { firstname: 'Xava', lastname: 'Pittman' },
+        { firstname: 'Erma', lastname: 'Davila' },
+        { firstname: 'Patrick', lastname: 'Ellis' },
+        { firstname: 'Justine', lastname: 'Perkins' }
+        ]
+    </script>
+</head>
+
+<body>
+    <header>
+        <h1>CookBook: Compund key</h1>
+        <form onsubmit="return false" spellcheck="false" autocomplete="off">
+            <search>
+                <input type="search" placeholder="girls' names beginning with A">
+                <hr>
+                <output></output>
+            </search>
+        </form>
+    </header>
+    <hr>
+    <main></main>
+    <script type="module">
+        import { JSxdb } from '../jsxdb.js';
+
+        addEventListener('load', async event => {
+
+            const db = await JSxdb.init('compoundkey.db', {
+                1: {
+                    user: "lastname+firstname"
+                }
+            });
+
+            const [store1] = await db.write("user");
+            const count = await store1.count();
+
+            // fill the db only one times
+            if (!count) {
+
+                for await (const item of names) {
+                    store1.add(item);
+                }
+            }
+
+            const result = await store1.getAll(JSxdb.between(['Pittman', 'Dorsay'], ['Roman', 'Ida']));
+
+            console.table(result)
+        });
+    </script>
+</body>
+
+</html>
