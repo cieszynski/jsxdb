@@ -1,0 +1,5 @@
+{ /* jsdoc2md -c jsdoc.json jsxdb.mjs > jsxdb.md */
+  "source": {
+    "includePattern": ".+\\.(js(doc|x)?|mjs)$"
+  }
+}

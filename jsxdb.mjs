@@ -2,16 +2,19 @@
 
 // Copyright (c) 2026 Stephan Cieszynski
 
+
 /**
- * @module
+ * @module JSxDB
+ * @author Stephan Cieszynski
  */
+export default JSxDB;
 
-// Find all lowercase and uppercase
-// combinations of a string
-// called from ingnoreCase
+
 
 /**
- * @kind function
+ * Find all lowercase and uppercase combinations 
+ * of a string called from ingnoreCase
+ * @function
  * @param {String} permutable
  * @returns {String[]}
  */
@@ -36,7 +39,7 @@ const permutation = (permutable) => {
 };
 
 /**
- * @kind function
+ * @function
  * @param  {...String} keyRangeParams
  * @returns {IDBKeyRange}
  */
@@ -72,12 +75,17 @@ class Query {
     #limit = 0;
     #args;
 
+    /**
+     * 
+     * @param {*} indexName 
+     * @param  {...any} keyRangeParams 
+     */
     constructor(indexName, ...keyRangeParams) {
         this.#args = [indexName, prepare(...keyRangeParams)];
     }
 
     /**
-     * @kind function
+     * @function
      * @returns {this}
      */
     reverse = () => {
@@ -86,7 +94,7 @@ class Query {
     };
 
     /**
-     * @kind function
+     * @function
      * @param {Integer} int
      * @returns {this}
      */
@@ -96,7 +104,7 @@ class Query {
     }
 
     /**
-     * @kind function
+     * @function
      * @returns {Promise}
      */
     query = () => {
@@ -119,7 +127,7 @@ class Query {
     };
 
     /**
-     * @kind function
+     * @function
      * @returns {Promise}
      */
     delete = () => {
@@ -142,7 +150,7 @@ class Query {
     };
 
     /**
-     * @kind function
+     * @function
      * @returns {Promise}
      */
     update = (obj) => {
@@ -165,7 +173,7 @@ class Query {
     };
 
     /**
-     * @kind function
+     * @function
      * @param {String} indexName
      * @param  {...String} keyRangeParams
      * @returns {this}
@@ -183,7 +191,7 @@ class Query {
     };
 
     /**
-     * @kind function
+     * @function
      * @param {String} indexName
      * @param  {...String} keyRangeParams
      * @returns {this}
@@ -408,12 +416,12 @@ class Store {
         });
 
     /**
-     * @kind function
+     * @function
      */
     abort = () => this.#store.transaction.abort();
 
     /**
-     * @kind function
+     * @function
      * @param {Object} obj
      * @param {Key} [key]
      * @returns {Promise}
@@ -421,39 +429,39 @@ class Store {
     add = (obj, key) => this.#execute("add", obj, key);
 
     /**
-     * @kind function
+     * @function
      * @returns {Promise}
      */
     clear = () => this.#execute("clear");
 
     /**
-     * @kind function
+     * @function
      */
     commit = () => this.#store.transaction.commit();
 
     /**
-     * @kind function
+     * @function
      * @param {KeyOrKeyRange} keyOrKeyRange
      * @returns {Promise}
      */
     count = (keyOrKeyRange) => this.#execute("count", keyOrKeyRange);
 
     /**
-     * @kind function
+     * @function
      * @param {KeyOrKeyRange} keyOrKeyRange
      * @returns {Promise}
      */
     delete = (keyOrKeyRange) => this.#execute("delete", keyOrKeyRange);
 
     /**
-     * @kind function
+     * @function
      * @param {KeyOrKeyRange} keyOrKeyRange
      * @returns {Promise}
      */
     get = (keyOrKeyRange) => this.#execute("get", keyOrKeyRange);
 
     /**
-     * @kind function
+     * @function
      * @param {KeyOrKeyRange} keyOrKeyRange
      * @param {Integer} limit
      * @returns {Promise}
@@ -461,7 +469,7 @@ class Store {
     getAll = (keyOrKeyRange, limit) => this.#execute("getAll", keyOrKeyRange, limit);
 
     /**
-     * @kind function
+     * @function
      * @param {IDBKeyRange} keyRange
      * @param {Integer} limit
      * @returns {Promise}
@@ -470,28 +478,21 @@ class Store {
         this.#execute("getAllKeys", keyRange, limit);
 
     /**
-     * @typedef {Object} Options
-     * @property {IDBKeyRange} [query]
-     * @property {Integer} [count]
-     * @property {Enum} [direction]
-     */
-
-    /**
-     * @kind function
+     * @function
      * @param {Options} options
      * @returns {Promise}
      */
     getAllRecords = (options) => this.#execute("getAllRecords", options);
 
     /**
-     * @kind function
+     * @function
      * @param {KeyOrKeyRange} keyOrKeyRange
      * @returns {Promise}
      */
     getKey = (keyOrKeyRange) => this.#execute("getKey", keyOrKeyRange);
 
     /**
-     * @kind function
+     * @function
      * @param {Object} obj
      * @param {Key} key
      * @returns {Promise}
@@ -499,7 +500,7 @@ class Store {
     put = (obj, key) => this.#execute("put", obj, key);
 
     /**
-     * @kind function
+     * @function
      * @param {String} indexName
      * @param  {...String} keyRangeParams
      * @returns {Query}
@@ -512,7 +513,7 @@ class Store {
     };
 
     /**
-     * @kind function
+     * @function
      * @param {String} indexName
      * @param {String} str
      * @param {Boolean} [startsWith=false]
@@ -605,7 +606,7 @@ class Database {
 
     /**
      * @private
-     * @kind function
+     * @function
      * @param {Boolean} readonly
      * @param  {...String} storeNames
      * @returns {Promise}
@@ -622,27 +623,27 @@ class Database {
     };
 
     /**
-     * @kind function
+     * @function
      * @param  {...String} storeNames One or more store names, separeted by comma
      * @returns {Store[]} Array of stores
      */
     read = (...storeNames) => this.#readwrite(true, ...storeNames);
 
     /**
-     * @kind function
+     * @function
      * @param  {...String} storeNames
      * @returns {Store[]} Array of stores
      */
     write = (...storeNames) => this.#readwrite(false, ...storeNames);
 
     /**
-     * @kind function
+     * @function
      */
     close = () => this.#db.close();
 }
 
 /**
- * @kind function
+ * @function
  * @param {IDBDatabase} db
  * @param {Integer} oldVersion
  * @param {Integer} newVersion
@@ -697,6 +698,9 @@ const onupgradeneeded = (db, oldVersion, newVersion, scheme) => {
     }
 };
 
+/**
+ *
+ */
 const JSxDB = {
     /**
      * @kind member
@@ -707,7 +711,7 @@ const JSxDB = {
     },
 
     /**
-     * @kind function
+     * @function
      * @param {String} name bla
      * @param {Object} scheme
      * @returns {Promise}
@@ -752,7 +756,7 @@ const JSxDB = {
         }),
 
     /**
-     * @kind function
+     * @function
      * @param {String} name
      * @returns {Promise}
      */
@@ -771,7 +775,7 @@ const JSxDB = {
         }),
 
     /**
-     * @kind function
+     * @function
      * @param {String} name
      * @returns {Promise}
      */
@@ -783,7 +787,7 @@ const JSxDB = {
         }),
 
     /**
-     * @kind function
+     * @function
      * @param {Key} z
      * @returns {IDBKeyRange}
      */
@@ -829,4 +833,4 @@ const JSxDB = {
     startsWith: (s) => IDBKeyRange.bound(s, s + "\uffff", true, true),
 };
 
-export default JSxDB;
+
