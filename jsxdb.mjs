@@ -2,21 +2,13 @@
 
 // Copyright (c) 2026 Stephan Cieszynski
 
-
 /**
- * @module JSxDB
- * @author Stephan Cieszynski
- */
-export default JSxDB;
-
-
-
-/**
- * Find all lowercase and uppercase combinations 
+ * Find all lowercase and uppercase combinations
  * of a string called from ingnoreCase
  * @function
  * @param {String} permutable
  * @returns {String[]}
+ * @private
  */
 const permutation = (permutable) => {
     const arr = [];
@@ -42,27 +34,76 @@ const permutation = (permutable) => {
  * @function
  * @param  {...String} keyRangeParams
  * @returns {IDBKeyRange}
+ * @private
  */
 const prepare = (...keyRangeParams) => {
-    const [operator, data] = keyRangeParams;
+    const [operator, data, ...more] = keyRangeParams;
 
     if (data) {
         switch (operator) {
             case ">":
-                return JSxDB.gt(data);
+                return gt(data);
             case ">=":
-                return JSxDB.ge(data);
+                return ge(data);
             case "<":
-                return JSxDB.lt(data);
+                return lt(data);
             case "<=":
-                return JSxDB.le(data);
+                return le(data);
             case "=":
-                return JSxDB.eq(data);
+                return eq(data);
+            case "><":
+                return between(data, ...more);
+            case ">>": 
+                return startsWith(data);
+
         }
     }
 
     return operator;
 };
+
+/** */
+class Parser {
+    /**
+     * @param {Object} obj
+     * @returns {Promise}
+     */
+    build = (
+        { query, update, remove, or = false, limit = 0, reverse = false },
+    ) => {
+        const args = [];
+
+        [query ?? update ?? remove].flat(1).forEach((item) => {
+            args.push(
+                item.key,
+                prepare(
+                    item.operator,
+                    ...[item.value].flat(),
+                ),
+            );
+        });
+
+        const verb = (query && "query") ??
+            (update && "update") ??
+            (remove && "remove");
+
+        if (or) {
+            return this.execute_or(
+                verb,
+                reverse,
+                limit,
+                ...args,
+            );
+        }
+
+        return this.execute_and(
+            verb,
+            reverse,
+            limit,
+            ...args,
+        );
+    };
+}
 
 /**
  * @class
@@ -76,9 +117,8 @@ class Query {
     #args;
 
     /**
-     * 
-     * @param {*} indexName 
-     * @param  {...any} keyRangeParams 
+     * @param {String} indexName
+     * @param  {...String|IDBKeyRange} keyRangeParams
      */
     constructor(indexName, ...keyRangeParams) {
         this.#args = [indexName, prepare(...keyRangeParams)];
@@ -103,79 +143,49 @@ class Query {
         return this;
     }
 
-    /**
-     * @function
-     * @returns {Promise}
-     */
-    query = () => {
-        switch (true) {
-            case !!this.#and:
-                return this.execute_and(
-                    "query",
-                    this.#reverse,
-                    this.#limit,
-                    ...this.#args,
-                );
-            case !!this.#or:
-                return this.execute_or(
-                    "query",
-                    this.#reverse,
-                    this.#limit,
-                    ...this.#args,
-                );
+    #run = (verb, obj) => {
+        if (obj) this.#args.push(obj);
+
+        if (this.#or) {
+            return this.execute_or(
+                verb,
+                this.#reverse,
+                this.#limit,
+                ...this.#args,
+            );
         }
+
+        return this.execute_and(
+            verb,
+            this.#reverse,
+            this.#limit,
+            ...this.#args,
+        );
     };
 
     /**
      * @function
      * @returns {Promise}
      */
-    delete = () => {
-        switch (true) {
-            case !!this.#and:
-                return this.execute_and(
-                    "delete",
-                    this.#reverse,
-                    this.#limit,
-                    ...this.#args,
-                );
-            case !!this.#or:
-                return this.execute_or(
-                    "delete",
-                    this.#reverse,
-                    this.#limit,
-                    ...this.#args,
-                );
-        }
-    };
+    query = () => this.#run("query");
 
     /**
      * @function
      * @returns {Promise}
      */
-    update = (obj) => {
-        switch (true) {
-            case !!this.#and:
-                return this.execute_and(
-                    "update",
-                    this.#reverse,
-                    this.#limit,
-                    ...this.#args.concat(obj),
-                );
-            case !!this.#or:
-                return this.execute_or(
-                    "update",
-                    this.#reverse,
-                    this.#limit,
-                    ...this.#args.concat(obj),
-                );
-        }
-    };
+    remove = () => this.#run("remove");
+
+    /**
+     * @function
+     * @param {Object} obj
+     * @returns {Promise}
+     */
+    update = (obj) => this.#run("update", obj);
 
     /**
      * @function
      * @param {String} indexName
-     * @param  {...String} keyRangeParams
+     * @param  {...String|IDBKeyRange} keyRangeParams
      * @returns {this}
      */
     and = (indexName, ...keyRangeParams) => {
@@ -193,7 +203,7 @@ class Query {
     /**
      * @function
      * @param {String} indexName
-     * @param  {...String} keyRangeParams
+     * @param  {...String|IDBKeyRange} keyRangeParams
      * @returns {this}
      */
     or = (indexName, ...keyRangeParams) => {
@@ -273,12 +283,12 @@ class Store {
         });
 
     // called from execute_and, execute_or
-    #execute_cursor_delete = (cursor) =>
+    #execute_cursor_remove = (cursor) =>
         new Promise((resolve) => {
             cursor
                 .delete()
                 // onsuccess result is always 'undefined', so
-                // return the deleted record
+                // return the removed record
                 .onsuccess = (event) => {
                     resolve(event.target.source.value);
                 };
@@ -324,8 +334,8 @@ class Store {
                                 this.#execute_cursor_update(cursor, obj),
                             );
                             break;
-                        case "delete":
-                            promises.push(this.#execute_cursor_delete(cursor));
+                        case "remove":
+                            promises.push(this.#execute_cursor_remove(cursor));
                             break;
                         default:
                             console.error("unknown verb ", verb);
@@ -390,9 +400,9 @@ class Store {
                                     this.#execute_cursor_update(cursor, obj),
                                 );
                                 break;
-                            case "delete":
+                            case "remove":
                                 promises.push(
-                                    this.#execute_cursor_delete(cursor),
+                                    this.#execute_cursor_remove(cursor),
                                 );
                                 break;
                             default:
@@ -405,7 +415,7 @@ class Store {
             }
         });
 
-    // called by add, clear, cout, delete,
+    // called by add, clear, cout, remove,
     // get, getAll, getAllKeys, getKey, put
     #execute = (verb, ...args) =>
         new Promise((resolve, reject) => {
@@ -451,7 +461,7 @@ class Store {
      * @param {KeyOrKeyRange} keyOrKeyRange
      * @returns {Promise}
      */
-    delete = (keyOrKeyRange) => this.#execute("delete", keyOrKeyRange);
+    remove = (keyOrKeyRange) => this.#execute("remove", keyOrKeyRange);
 
     /**
      * @function
@@ -466,7 +476,8 @@ class Store {
      * @param {Integer} limit
      * @returns {Promise}
      */
-    getAll = (keyOrKeyRange, limit) => this.#execute("getAll", keyOrKeyRange, limit);
+    getAll = (keyOrKeyRange, limit) =>
+        this.#execute("getAll", keyOrKeyRange, limit);
 
     /**
      * @function
@@ -502,7 +513,7 @@ class Store {
     /**
      * @function
      * @param {String} indexName
-     * @param  {...String} keyRangeParams
+     * @param  {...String|IDBKeyRange} keyRangeParams
      * @returns {Query}
      */
     where = (indexName, ...keyRangeParams) => {
@@ -510,6 +521,20 @@ class Store {
             execute_and: this.#execute_and,
             execute_or: this.#execute_or,
         });
+    };
+
+    /**
+     * @function
+     * @param {Object} obj 
+     * @returns {Promise}
+     */
+    parse = (obj) => {
+        const parser = Object.assign(new Parser(), {
+            execute_and: this.#execute_and,
+            execute_or: this.#execute_or,
+        });
+
+        return parser.build(obj);
     };
 
     /**
@@ -648,6 +673,7 @@ class Database {
  * @param {Integer} oldVersion
  * @param {Integer} newVersion
  * @param {Object} scheme
+ * @private
  */
 const onupgradeneeded = (db, oldVersion, newVersion, scheme) => {
     for (let version = oldVersion + 1; version <= newVersion; version++) {
@@ -699,9 +725,77 @@ const onupgradeneeded = (db, oldVersion, newVersion, scheme) => {
 };
 
 /**
- *
+ * @module JSxDB
+ * @author Stephan Cieszynski
  */
-const JSxDB = {
+
+const eq = (z) => IDBKeyRange.only(z);
+
+const le = (x) => IDBKeyRange.upperBound(x);
+
+const lt = (x) => IDBKeyRange.upperBound(x, true);
+
+const ge = (y) => IDBKeyRange.lowerBound(y);
+
+const gt = (y) => IDBKeyRange.lowerBound(y, true);
+
+const between = (x, y, bx, by) => IDBKeyRange.bound(x, y, bx, by);
+
+const startsWith = (s) => IDBKeyRange.bound(s, s + "\uffff", true, true);
+
+export default {
+    /**
+     * @function
+     * @param {Any} z
+     * @returns {IDBKeyRange}
+     */
+    eq,
+
+    /**
+     * @function
+     * @param {Any} x
+     * @returns {IDBKeyRange}
+     */
+    le,
+
+    /**
+     * @function
+     * @param {Any} x
+     * @returns {IDBKeyRange}
+     */
+    lt,
+
+    /**
+     * @function
+     * @param {Any} y
+     * @returns {IDBKeyRange}
+     */
+    ge,
+
+    /**
+     * @function
+     * @param {Any} y
+     * @returns {IDBKeyRange}
+     */
+    gt,
+
+    /**
+     * @function
+     * @param {Any} x
+     * @param {Any} y
+     * @param {Boolean} [bx=false]
+     * @param {Boolean} [by=false]
+     * @returns {IDBKeyRange}
+     */
+    between,
+
+    /**
+     * @function
+     * @param {String} s
+     * @returns {IDBKeyRange}
+     */
+    startsWith,
+
     /**
      * @kind member
      * @type {Promise}
@@ -712,7 +806,7 @@ const JSxDB = {
 
     /**
      * @function
-     * @param {String} name bla
+     * @param {String} name
      * @param {Object} scheme
      * @returns {Promise}
      */
@@ -785,52 +879,4 @@ const JSxDB = {
             request.onerror = () => reject(request.error);
             request.onsuccess = () => resolve(name);
         }),
-
-    /**
-     * @function
-     * @param {Key} z
-     * @returns {IDBKeyRange}
-     */
-    eq: (z) => IDBKeyRange.only(z),
-
-    /**
-     * @param {*} x
-     * @returns {IDBKeyRange}
-     */
-    le: (x) => IDBKeyRange.upperBound(x),
-
-    /**
-     * @param {*} x
-     * @returns {IDBKeyRange}
-     */
-    lt: (x) => IDBKeyRange.upperBound(x, true),
-
-    /**
-     * @param {*} y
-     * @returns {IDBKeyRange}
-     */
-    ge: (y) => IDBKeyRange.lowerBound(y),
-
-    /**
-     * @param {*} y
-     * @returns {IDBKeyRange}
-     */
-    gt: (y) => IDBKeyRange.lowerBound(y, true),
-
-    /**
-     * @param {*} x
-     * @param {*} y
-     * @param {*} bx
-     * @param {*} by
-     * @returns {IDBKeyRange}
-     */
-    between: (x, y, bx, by) => IDBKeyRange.bound(x, y, bx, by),
-
-    /**
-     * @param {*} s
-     * @returns {IDBKeyRange}
-     */
-    startsWith: (s) => IDBKeyRange.bound(s, s + "\uffff", true, true),
 };
-
-
