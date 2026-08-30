@@ -18,6 +18,15 @@
 <dd></dd>
 </dl>
 
+## Typedefs
+
+<dl>
+<dt><a href="#QueryVerb">QueryVerb</a> : <code>Object</code></dt>
+<dd></dd>
+<dt><a href="#QueryObject">QueryObject</a> : <code>Object</code></dt>
+<dd></dd>
+</dl>
+
 <a name="module_JSxDB"></a>
 
 ## JSxDB
@@ -43,6 +52,8 @@
 <a name="module_JSxDB.eq"></a>
 
 ### JSxDB.eq(z) ⇒ <code>IDBKeyRange</code>
+equal - operator (or use "=" instead)
+
 **Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
 
 | Param | Type |
@@ -52,6 +63,8 @@
 <a name="module_JSxDB.le"></a>
 
 ### JSxDB.le(x) ⇒ <code>IDBKeyRange</code>
+less than or equal to - operator (or use "<=" instead)
+
 **Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
 
 | Param | Type |
@@ -61,6 +74,8 @@
 <a name="module_JSxDB.lt"></a>
 
 ### JSxDB.lt(x) ⇒ <code>IDBKeyRange</code>
+less than - operator (or use "<" instead)
+
 **Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
 
 | Param | Type |
@@ -70,6 +85,8 @@
 <a name="module_JSxDB.ge"></a>
 
 ### JSxDB.ge(y) ⇒ <code>IDBKeyRange</code>
+greater than or equal to - operator (or use ">=" instead)
+
 **Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
 
 | Param | Type |
@@ -79,6 +96,8 @@
 <a name="module_JSxDB.gt"></a>
 
 ### JSxDB.gt(y) ⇒ <code>IDBKeyRange</code>
+greater than - operator (or use ">" instead)
+
 **Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
 
 | Param | Type |
@@ -88,6 +107,8 @@
 <a name="module_JSxDB.between"></a>
 
 ### JSxDB.between(x, y, [bx], [by]) ⇒ <code>IDBKeyRange</code>
+between - operator (or use "><" instead)
+
 **Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
 
 | Param | Type | Default |
@@ -100,6 +121,8 @@
 <a name="module_JSxDB.startsWith"></a>
 
 ### JSxDB.startsWith(s) ⇒ <code>IDBKeyRange</code>
+starts with - operator (or use ">>" instead)
+
 **Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
 
 | Param | Type |
@@ -109,21 +132,39 @@
 <a name="module_JSxDB.init"></a>
 
 ### JSxDB.init(name, scheme) ⇒ <code>Promise</code>
+Create and opens the database to work with
+
 **Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
 
-| Param | Type |
-| --- | --- |
-| name | <code>String</code> | 
-| scheme | <code>Object</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| name | <code>String</code> | the name of the database |
+| scheme | <code>Object</code> | an Object to declare the scheme |
 
+**Example**  
+```js
+const db = await JSxdb.init("test.db", {
+     // singleline
+     items: "@id, title",
+     // multiline
+     tags: `
+         id,
+         title,
+         *items
+     `
+ }
+);
+```
 <a name="module_JSxDB.open"></a>
 
 ### JSxDB.open(name) ⇒ <code>Promise</code>
+Opens the database to work with
+
 **Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
 
-| Param | Type |
-| --- | --- |
-| name | <code>String</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| name | <code>String</code> | the name of the database |
 
 <a name="module_JSxDB.remove"></a>
 
@@ -140,12 +181,12 @@
 **Kind**: global class  
 <a name="Parser+build"></a>
 
-### parser.build ⇒ <code>Promise</code>
-**Kind**: instance property of [<code>Parser</code>](#Parser)  
+### parser.build(obj) ⇒ <code>Promise</code>
+**Kind**: instance method of [<code>Parser</code>](#Parser)  
 
 | Param | Type |
 | --- | --- |
-| obj | <code>Object</code> | 
+| obj | [<code>QueryObject</code>](#QueryObject) | 
 
 <a name="Query"></a>
 
@@ -436,3 +477,29 @@
 
 ### database.close()
 **Kind**: instance method of [<code>Database</code>](#Database)  
+<a name="QueryVerb"></a>
+
+## QueryVerb : <code>Object</code>
+**Kind**: global typedef  
+**Properties**
+
+| Name | Type |
+| --- | --- |
+| key | <code>String</code> | 
+| op | <code>String</code> | 
+| value | <code>String</code> \| <code>Array.&lt;String&gt;</code> | 
+
+<a name="QueryObject"></a>
+
+## QueryObject : <code>Object</code>
+**Kind**: global typedef  
+**Properties**
+
+| Name | Type | Default |
+| --- | --- | --- |
+| query | [<code>QueryVerb</code>](#QueryVerb) \| [<code>Array.&lt;QueryVerb&gt;</code>](#QueryVerb) |  | 
+| update | [<code>QueryVerb</code>](#QueryVerb) \| [<code>Array.&lt;QueryVerb&gt;</code>](#QueryVerb) |  | 
+| remove | [<code>QueryVerb</code>](#QueryVerb) \| [<code>Array.&lt;QueryVerb&gt;</code>](#QueryVerb) |  | 
+| [limit] | <code>Integer</code> | <code>0</code> | 
+| [reverse] | <code>Boolean</code> | <code>false</code> | 
+

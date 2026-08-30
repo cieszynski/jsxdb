@@ -4,7 +4,7 @@
 
 /**
  * Find all lowercase and uppercase combinations
- * of a string called from ingnoreCase
+ * of a string (called from ingnoreCase)
  * @function
  * @param {String} permutable
  * @returns {String[]}
@@ -30,7 +30,8 @@ const permutation = (permutable) => {
     return arr.sort();
 };
 
-/**
+/** Replace the string version of the operator
+ *  with the corresponding IDBKeyRange.
  * @function
  * @param  {...String} keyRangeParams
  * @returns {IDBKeyRange}
@@ -53,9 +54,8 @@ const prepare = (...keyRangeParams) => {
                 return eq(data);
             case "><":
                 return between(data, ...more);
-            case ">>": 
+            case ">>":
                 return startsWith(data);
-
         }
     }
 
@@ -65,19 +65,42 @@ const prepare = (...keyRangeParams) => {
 /** */
 class Parser {
     /**
-     * @param {Object} obj
+     * @typedef {Object} QueryVerb
+     * @property {String} key
+     * @property {String} op
+     * @property {String|String[]} value
+     */
+
+    /**
+     * @typedef {Object} QueryObject
+     * @property {QueryVerb|QueryVerb[]} query
+     * @property {QueryVerb|QueryVerb[]} update
+     * @property {QueryVerb|QueryVerb[]} remove
+     * @property {Integer} [limit=0]
+     * @property {Boolean} [reverse=false]
+     */
+
+    /**
+     * @function
+     * @param {QueryObject} obj
      * @returns {Promise}
      */
     build = (
         { query, update, remove, or = false, limit = 0, reverse = false },
     ) => {
+        console.assert(
+            !!query + !!update + !!remove == 1,
+            "Only one of <query|update|remove> allowed",
+        );
+
         const args = [];
 
+        // ensures to use allways an array of QueryObject
         [query ?? update ?? remove].flat(1).forEach((item) => {
             args.push(
                 item.key,
                 prepare(
-                    item.operator,
+                    item.op,
                     ...[item.value].flat(),
                 ),
             );
@@ -525,7 +548,7 @@ class Store {
 
     /**
      * @function
-     * @param {Object} obj 
+     * @param {Object} obj
      * @returns {Promise}
      */
     parse = (obj) => {
@@ -678,13 +701,14 @@ class Database {
 const onupgradeneeded = (db, oldVersion, newVersion, scheme) => {
     for (let version = oldVersion + 1; version <= newVersion; version++) {
         Object.entries(scheme[version]).forEach(([storeName, definition]) => {
-            const [keypath, ...indexes] = definition.split(/\s*(?:,)\s*/);
+            const [keypath, ...indexes] = definition.trim().split(/\s*(?:,)\s*/);
 
             // helper function to handle the different
             // types of keypaths in stores and indexes
             const prepareKeyPath = (keypath) => {
                 return keypath
-                    .replace(/[\*\!\@]/, "")
+                    //.replace(/[\*\!\@\s\n]/, "")
+                    .replace(/[^a-zA-Z0-9]/g, "")
                     .split(/\+/)
                     // at this point keypath is an array
                     .reduce((prev, cur, idx) => {
@@ -700,7 +724,7 @@ const onupgradeneeded = (db, oldVersion, newVersion, scheme) => {
                         }
                     });
             };
-
+            
             const store = db.createObjectStore(storeName, {
                 // if keyPath.length is 0 set keyPath
                 // to undefined (out-of-line keys)
@@ -709,6 +733,7 @@ const onupgradeneeded = (db, oldVersion, newVersion, scheme) => {
             });
 
             indexes.forEach((indexName) => {
+                console.log(indexName)
                 store.createIndex(
                     indexName.replace(/[\*!]/, ""),
                     prepareKeyPath(indexName),
@@ -744,42 +769,42 @@ const between = (x, y, bx, by) => IDBKeyRange.bound(x, y, bx, by);
 const startsWith = (s) => IDBKeyRange.bound(s, s + "\uffff", true, true);
 
 export default {
-    /**
+    /** equal - operator (or use "=" instead)
      * @function
      * @param {Any} z
      * @returns {IDBKeyRange}
      */
     eq,
 
-    /**
+    /** less than or equal to - operator (or use "<=" instead)
      * @function
      * @param {Any} x
      * @returns {IDBKeyRange}
      */
     le,
 
-    /**
+    /** less than - operator (or use "<" instead)
      * @function
      * @param {Any} x
      * @returns {IDBKeyRange}
      */
     lt,
 
-    /**
+    /** greater than or equal to - operator (or use ">=" instead)
      * @function
      * @param {Any} y
      * @returns {IDBKeyRange}
      */
     ge,
 
-    /**
+    /** greater than - operator (or use ">" instead)
      * @function
      * @param {Any} y
      * @returns {IDBKeyRange}
      */
     gt,
 
-    /**
+    /** between - operator (or use "><" instead)
      * @function
      * @param {Any} x
      * @param {Any} y
@@ -789,7 +814,7 @@ export default {
      */
     between,
 
-    /**
+    /** starts with - operator (or use ">>" instead)
      * @function
      * @param {String} s
      * @returns {IDBKeyRange}
@@ -804,11 +829,23 @@ export default {
         return indexedDB.databases();
     },
 
-    /**
+    /** Create and opens the database to work with
      * @function
-     * @param {String} name
-     * @param {Object} scheme
+     * @param {String} name - the name of the database
+     * @param {Object} scheme - an Object to declare the scheme
      * @returns {Promise}
+     * @example
+     * const db = await JSxdb.init("test.db", {
+     *      // singleline
+     *      items: "@id, title",
+     *      // multiline
+     *      tags: `
+     *          id,
+     *          title,
+     *          *items
+     *      `
+     *  }
+     * );
      */
     init: (name, scheme) =>
         new Promise((resolve, reject) => {
@@ -849,9 +886,9 @@ export default {
                 );
         }),
 
-    /**
+    /** Opens the database to work with
      * @function
-     * @param {String} name
+     * @param {String} name - the name of the database
      * @returns {Promise}
      */
     open: (name) =>
