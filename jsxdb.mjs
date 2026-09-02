@@ -701,7 +701,9 @@ class Database {
 const onupgradeneeded = (db, oldVersion, newVersion, scheme) => {
     for (let version = oldVersion + 1; version <= newVersion; version++) {
         Object.entries(scheme[version]).forEach(([storeName, definition]) => {
-            const [keypath, ...indexes] = definition.trim().split(/\s*(?:,)\s*/);
+            const [keypath, ...indexes] = definition.trim().split(
+                /\s*(?:,)\s*/,
+            );
 
             // helper function to handle the different
             // types of keypaths in stores and indexes
@@ -724,7 +726,7 @@ const onupgradeneeded = (db, oldVersion, newVersion, scheme) => {
                         }
                     });
             };
-            
+
             const store = db.createObjectStore(storeName, {
                 // if keyPath.length is 0 set keyPath
                 // to undefined (out-of-line keys)
@@ -733,7 +735,7 @@ const onupgradeneeded = (db, oldVersion, newVersion, scheme) => {
             });
 
             indexes.forEach((indexName) => {
-                console.log(indexName)
+                console.log(indexName);
                 store.createIndex(
                     indexName.replace(/[\*!]/, ""),
                     prepareKeyPath(indexName),
@@ -767,6 +769,8 @@ const gt = (y) => IDBKeyRange.lowerBound(y, true);
 const between = (x, y, bx, by) => IDBKeyRange.bound(x, y, bx, by);
 
 const startsWith = (s) => IDBKeyRange.bound(s, s + "\uffff", true, true);
+
+const databases = () => indexedDB.databases();
 
 export default {
     /** equal - operator (or use "=" instead)
@@ -822,28 +826,28 @@ export default {
     startsWith,
 
     /**
-     * @kind member
+     * @function
      * @type {Promise}
      */
-    get databases() {
-        return indexedDB.databases();
-    },
+    databases,
 
     /** Create and opens the database to work with
      * @function
      * @param {String} name - the name of the database
      * @param {Object} scheme - an Object to declare the scheme
      * @returns {Promise}
-     * @example
+     * @example <caption>test</caption>
      * const db = await JSxdb.init("test.db", {
-     *      // singleline
-     *      items: "@id, title",
-     *      // multiline
-     *      tags: `
-     *          id,
-     *          title,
-     *          *items
-     *      `
+     *      1: {
+     *          // singleline
+     *          items: "@id, title",
+     *          // multiline
+     *          tags: `
+     *              id,
+     *              title,
+     *              *items
+     *          `
+     *      }
      *  }
      * );
      */
@@ -893,7 +897,7 @@ export default {
      */
     open: (name) =>
         new Promise(async (resolve, reject) => {
-            if (!(await JSxDB.databases).some((db) => db.name === name)) {
+            if (!(await databases()).some((db) => db.name === name)) {
                 reject(
                     new DOMException(`'${name}' not found`, "NotFoundError"),
                 );
@@ -913,6 +917,12 @@ export default {
     remove: (name) =>
         new Promise(async (resolve, reject) => {
             const request = indexedDB.deleteDatabase(name);
+
+            // Occurs when the database has not been closed
+            request.onblocked = () =>
+                reject(
+                    new Error(`Database '${name}' was blocked.`),
+                );
             request.onerror = () => reject(request.error);
             request.onsuccess = () => resolve(name);
         }),

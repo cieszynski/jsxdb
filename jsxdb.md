@@ -141,17 +141,19 @@ Create and opens the database to work with
 | name | <code>String</code> | the name of the database |
 | scheme | <code>Object</code> | an Object to declare the scheme |
 
-**Example**  
+**Example** *(test)*  
 ```js
 const db = await JSxdb.init("test.db", {
-     // singleline
-     items: "@id, title",
-     // multiline
-     tags: `
-         id,
-         title,
-         *items
-     `
+     1: {
+         // singleline
+         items: "@id, title",
+         // multiline
+         tags: `
+             id,
+             title,
+             *items
+         `
+     }
  }
 );
 ```
