@@ -1,5 +1,72 @@
 import JSxDB from "http://127.0.0.1:8081/jsxdb.mjs";
 
+const database_store_handler = async (database, store, request) => {
+    const { method } = request;
+
+    const body = { status: 405 };
+    const headers = {
+        "Content-Type": "application/json",
+    };
+
+    try {
+        const db = await JSxDB.open(database);
+
+        switch (method) {
+            case "GET": {
+                const [current] = await db.read(store);
+                body.name = current.name;
+                body.count = await current.count();
+                body.indexNames = current.indexNames;
+                body.keyPath = current.keyPath;
+                body.autoincrement = current.autoincrement;
+
+                const url = new URL(request.url);
+                const query = {};
+                let result, isOr = !!url.searchParams.getAll("or");
+                url.searchParams.delete("or");
+
+                url.searchParams.forEach((value, key) => {
+                    if (!query[key]) {
+                        query[key] = [];
+                    }
+                    query[key].push(value);
+                });
+
+                for (const [key, value] of Object.entries(query)) {
+                    let params;
+
+                    if (value.length === 1) {
+                        params = [key, "=", value].flat();
+                    } else {
+                        params = [key, value].flat();
+                    }
+
+                    if (result) {
+                        result = isOr
+                            ? result.or(...params)
+                            : result.and(...params);
+                    } else {
+                        result = current.where(...params);
+                    }
+                }
+
+                body.result = await result?.query() ?? [];
+                body.status = 200;
+            }
+        }
+
+        db.close();
+    } catch (error) {
+        body.error = error.message;
+        body.status = 500;
+    }
+
+    return new Response(JSON.stringify(body), {
+        status: body.status,
+        headers: headers,
+    });
+};
+
 const database_handler = async (database, request) => {
     const { method } = request;
 
@@ -9,13 +76,12 @@ const database_handler = async (database, request) => {
     };
 
     try {
+        const db = await JSxDB.open(database);
+
         switch (method) {
             case "GET": {
-                const db = await JSxDB.open(database);
                 body.stores = db.storenames;
                 body.status = 200;
-
-                db.close();
                 break;
             }
 
@@ -32,6 +98,8 @@ const database_handler = async (database, request) => {
                 break;
             }
         }
+
+        db.close();
     } catch (error) {
         body.error = error.message;
         body.status = 500;
@@ -76,7 +144,7 @@ const default_handler = async (request) => {
         body.error = error.message;
         body.status = 500;
     }
-    
+
     return new Response(JSON.stringify(body), {
         status: body.status,
         headers: headers,
@@ -99,6 +167,9 @@ const fetchHandler = async (event) => {
 
     const handler = async () => {
         switch (true) {
+            case !!database && !!store:
+                return database_store_handler(database, store, event.request);
+
             case !!database:
                 return database_handler(database, event.request);
 

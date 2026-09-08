@@ -43,18 +43,25 @@ const prepare = (...keyRangeParams) => {
     if (data) {
         switch (operator) {
             case ">":
+            case "gt":
                 return gt(data);
             case ">=":
+            case "ge":
                 return ge(data);
             case "<":
+            case "lt":
                 return lt(data);
             case "<=":
+            case "le":
                 return le(data);
             case "=":
+            case "eq":
                 return eq(data);
             case "><":
+            case "between":
                 return between(data, ...more);
             case ">>":
+            case "startsWith":
                 return startsWith(data);
         }
     }
@@ -158,17 +165,17 @@ class Query {
 
     /**
      * @function
-     * @param {Integer} int
+     * @param {Integer} [int=0]
      * @returns {this}
      */
-    limit(int) {
-        this.#limit = int > 0 ? int : 0;
+    limit(int=0) {
+        this.#limit = int;
         return this;
     }
 
     #run = (verb, obj) => {
         if (obj) this.#args.push(obj);
-
+        
         if (this.#or) {
             return this.execute_or(
                 verb,
@@ -270,7 +277,7 @@ class Store {
      * @type {Array.<String>}
      * @readonly
      */
-    get indexnames() {
+    get indexNames() {
         return Array.from(this.#store.indexNames);
     }
 
@@ -279,7 +286,7 @@ class Store {
      * @type {String}
      * @readonly
      */
-    get keypath() {
+    get keyPath() {
         return this.#store.keyPath;
     }
 
@@ -399,7 +406,7 @@ class Store {
                         }
                     },
                 };
-            })(args.length / 2, this.keypath);
+            })(args.length / 2, this.keyPath);
 
             while (args.length) {
                 const indexName = args.shift();
