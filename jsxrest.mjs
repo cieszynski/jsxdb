@@ -1,184 +1,139 @@
 import JSxDB from "http://127.0.0.1:8081/jsxdb.mjs";
 
-const database_store_handler = async (database, store, request) => {
-    const { method } = request;
-
-    const body = { status: 405 };
-    const headers = {
-        "Content-Type": "application/json",
-    };
-
-    try {
-        const db = await JSxDB.open(database);
-
-        switch (method) {
-            case "GET": {
-                const [current] = await db.read(store);
-                body.name = current.name;
-                body.count = await current.count();
-                body.indexNames = current.indexNames;
-                body.keyPath = current.keyPath;
-                body.autoincrement = current.autoincrement;
-
-                const url = new URL(request.url);
-                const query = {};
-                let result, isOr = !!url.searchParams.getAll("or");
-                url.searchParams.delete("or");
-
-                url.searchParams.forEach((value, key) => {
-                    if (!query[key]) {
-                        query[key] = [];
-                    }
-                    query[key].push(value);
-                });
-
-                for (const [key, value] of Object.entries(query)) {
-                    let params;
-
-                    if (value.length === 1) {
-                        params = [key, "=", value].flat();
-                    } else {
-                        params = [key, value].flat();
-                    }
-
-                    if (result) {
-                        result = isOr
-                            ? result.or(...params)
-                            : result.and(...params);
-                    } else {
-                        result = current.where(...params);
-                    }
-                }
-
-                body.result = await result?.query() ?? [];
-                body.status = 200;
-            }
-        }
-
-        db.close();
-    } catch (error) {
-        body.error = error.message;
-        body.status = 500;
-    }
-
-    return new Response(JSON.stringify(body), {
-        status: body.status,
-        headers: headers,
-    });
-};
-
-const database_handler = async (database, request) => {
-    const { method } = request;
-
-    const body = { status: 405 };
-    const headers = {
-        "Content-Type": "application/json",
-    };
-
-    try {
-        const db = await JSxDB.open(database);
-
-        switch (method) {
-            case "GET": {
-                body.stores = db.storenames;
-                body.status = 200;
-                break;
-            }
-
-            case "DELETE": {
-                const databases = (await JSxDB.databases())
-                    .map((item) => item.name);
-
-                if (databases.includes(database)) {
-                    body.deleted = await JSxDB.remove(database);
-                    body.status = 200;
-                } else {
-                    body.status = 404;
-                }
-                break;
-            }
-        }
-
-        db.close();
-    } catch (error) {
-        body.error = error.message;
-        body.status = 500;
-    }
-
-    return new Response(JSON.stringify(body), {
-        status: body.status,
-        headers: headers,
-    });
-};
-
-const default_handler = async (request) => {
-    const { method } = request;
-
-    const body = { status: 405 };
-    const headers = {
-        "Content-Type": "application/json",
-    };
-
-    try {
-        switch (method) {
-            case "GET": {
-                body.databases = await JSxDB.databases();
-                body.status = 200;
-                break;
-            }
-
-            case "POST": {
-                const { name, schema } = await request.json();
-                const db = await JSxDB.init(name, schema);
-
-                body.status = 201;
-                body.location =
-                    headers.location =
-                        new URL(name, location.href);
-
-                db.close();
-                break;
-            }
-        }
-    } catch (error) {
-        body.error = error.message;
-        body.status = 500;
-    }
-
-    return new Response(JSON.stringify(body), {
-        status: body.status,
-        headers: headers,
-    });
-};
+const PATTERN = new URLPattern({
+    pathname: "/jsxdb/{:dbname}?{/:storename}?{/:itemid}?{/:subpath}*",
+});
 
 const fetchHandler = async (event) => {
-    console.debug("A", event.request);
+    event.respondWith(
+        (async (request) => {
+            const { url, method, headers, body } = request;
 
-    const pattern = new URLPattern({
-        pathname: "/jsxdb/{:database}?{/:store}?{/:item}?",
-    });
+            if (!PATTERN.test(url)) {
+                return fetch(request);
+            }
 
-    if (!pattern.test(event.request.url)) {
-        return fetch(event.request);
-    }
+            const { dbname, storename, itemid, subpath } = PATTERN.exec(url)
+                .pathname.groups;
 
-    const { database, store, item } = pattern.exec(event.request.url)
-        .pathname.groups;
+            const response = {
+                self: url,
+                status: 405,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            };
 
-    const handler = async () => {
-        switch (true) {
-            case !!database && !!store:
-                return database_store_handler(database, store, event.request);
+            try {
+                if (!dbname) {
+                    switch (method) {
+                        case "GET":
+                            response.databases = await JSxDB.databases();
+                            response.status = 200;
+                            break;
+                    }
+                } else {
+                    const db = await JSxDB.open(dbname)
+                        .catch((error) => error);
 
-            case !!database:
-                return database_handler(database, event.request);
+                    if (db instanceof Error) {
+                        throw db;
+                    }
 
-            default:
-                return default_handler(event.request);
-        }
-    };
+                    if (!storename) {
+                        switch (method) {
+                            case "GET":
+                                Object.assign(response, {
+                                    name: db.name,
+                                    version: db.version,
+                                    stores: db.storenames,
+                                    status: 200,
+                                });
+                                break;
+                        }
+                        db.close();
+                    } else {
+                        const [store] =
+                            ["PUT", "POST", "PATCH", "DELETE"].includes(method)
+                                ? await db.write(storename)
+                                    .catch((error) => error)
+                                : await db.read(storename)
+                                    .catch((error) => error);
 
-    event.respondWith(handler());
+                        if (store instanceof Error) {
+                            db.close();
+                            throw store;
+                        }
+
+                        if (!itemid) {
+                            switch (method) {
+                                case "GET":
+                                    Object.assign(response, {
+                                        name: store.name,
+                                        keyPath: store.keyPath,
+                                        indexNames: store.indexNames,
+                                        count: await store.count(),
+                                        status: 200,
+                                    });
+                                    break;
+                            }
+                            db.close();
+                        } else {
+                            // if itemid is a number ...
+                            const id = /[0-9]+/.test(itemid)
+                                ? parseInt(itemid)
+                                : itemid;
+
+                            const item = await store.get(id)
+                                .catch((error) => error);
+
+                            if (item instanceof Error) {
+                                db.close();
+                                throw item;
+                            }
+
+                            if (!subpath) {
+                                switch (method) {
+                                    case "GET":
+                                        Object.assign(response, {
+                                            result: item,
+                                            status: 200,
+                                        });
+                                        break;
+                                }
+                                db.close();
+                            } else {
+                                switch (method) {
+                                    case "GET":
+                                        response.result =
+                                            subpath.split("/").reduce(
+                                                (prev, curr) => {
+                                                    return prev[curr];
+                                                },
+                                                item,
+                                            ) ?? null;
+                                        response.status = response.result
+                                            ? 200
+                                            : 404;
+                                        break;
+                                    case "PATCH":
+                                        //TODO
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                return new Response(JSON.stringify(response), {
+                    status: response.status,
+                    headers: response.headers,
+                });
+            }
+        })(event.request),
+    );
 };
 
 export default {

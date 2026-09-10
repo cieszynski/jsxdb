@@ -2,6 +2,12 @@
 
 // Copyright (c) 2026 Stephan Cieszynski
 
+class NotFoundError extends DOMException {
+    constructor(msg = "not found") {
+        super(msg, "NotFoundError");
+    }
+}
+
 /**
  * Find all lowercase and uppercase combinations
  * of a string (called from ingnoreCase)
@@ -168,14 +174,14 @@ class Query {
      * @param {Integer} [int=0]
      * @returns {this}
      */
-    limit(int=0) {
+    limit(int = 0) {
         this.#limit = int;
         return this;
     }
 
     #run = (verb, obj) => {
         if (obj) this.#args.push(obj);
-        
+
         if (this.#or) {
             return this.execute_or(
                 verb,
@@ -665,6 +671,7 @@ class Database {
      * @param {Boolean} readonly
      * @param  {...String} storeNames
      * @returns {Promise}
+     * @throws NotFoundError - triggered if one of the specified object stores was not found
      */
     #readwrite = (readonly = false, ...storeNames) => {
         const request = this.#db.transaction(
@@ -680,14 +687,16 @@ class Database {
     /**
      * @function
      * @param  {...String} storeNames One or more store names, separeted by comma
-     * @returns {Store[]} Array of stores
+     * @returns {Promise}
+     * @throws NotFoundError - triggered if one of the specified object stores was not found
      */
     read = (...storeNames) => this.#readwrite(true, ...storeNames);
 
     /**
      * @function
      * @param  {...String} storeNames
-     * @returns {Store[]} Array of stores
+     * @returns {Promise}
+     * @throws NotFoundError - triggered if one of the specified object stores was not found
      */
     write = (...storeNames) => this.#readwrite(false, ...storeNames);
 
@@ -843,6 +852,7 @@ export default {
      * @param {String} name - the name of the database
      * @param {Object} scheme - an Object to declare the scheme
      * @returns {Promise}
+     * @throws TypeError - is triggered if no valid schema is available
      * @example <caption>test</caption>
      * const db = await JSxdb.init("test.db", {
      *      1: {
@@ -860,59 +870,49 @@ export default {
      */
     init: (name, scheme) =>
         new Promise((resolve, reject) => {
-            if (!scheme || (typeof scheme !== "object")) {
-                return reject(
-                    new DOMException(
-                        `'${name}': no valid scheme found`,
-                        "NotFoundError",
-                    ),
+            if (!(scheme && scheme.hasOwnProperty("1"))) {
+                reject(new TypeError("no valid scheme"));
+            } else {
+                const ordered = Object.keys(scheme).sort((a, b) =>
+                    parseFloat(a) - parseFloat(b)
                 );
+
+                // open the latest version or start an upgrade
+                const request = indexedDB.open(name, ordered.at(-1));
+
+                request.onerror = () => reject(request.error);
+                request.onblocked = () => reject(request.error);
+                request.onsuccess = () => resolve(new Database(request.result));
+                request.onupgradeneeded = (event) =>
+                    onupgradeneeded(
+                        event.target.result,
+                        event.oldVersion,
+                        event.newVersion,
+                        scheme,
+                    );
             }
-
-            if (typeof scheme !== "object") {
-                return reject(
-                    new DOMException(
-                        `'${name}': invalid scheme found`,
-                        "TypeError",
-                    ),
-                );
-            }
-
-            const ordered = Object.keys(scheme).sort((a, b) =>
-                parseFloat(a) - parseFloat(b)
-            );
-
-            // open the latest version or start an upgrade
-            const request = indexedDB.open(name, ordered.at(-1));
-
-            request.onerror = () => reject(request.error);
-            request.onblocked = () => reject(request.error);
-            request.onsuccess = () => resolve(new Database(request.result));
-            request.onupgradeneeded = (event) =>
-                onupgradeneeded(
-                    event.target.result,
-                    event.oldVersion,
-                    event.newVersion,
-                    scheme,
-                );
         }),
 
     /** Opens the database to work with
      * @function
      * @param {String} name - the name of the database
      * @returns {Promise}
+     * @throws NotFoundError - is triggered if no database with that name is found
      */
     open: (name) =>
         new Promise(async (resolve, reject) => {
-            if (!(await databases()).some((db) => db.name === name)) {
-                reject(
-                    new DOMException(`'${name}' not found`, "NotFoundError"),
-                );
-            } else {
+            const arr = await databases()
+                .catch((error) => error);
+
+            // Check whether the database exists:
+            // If it is missing, a new one will be created
+            if (arr.some && arr.some((db) => db.name === name)) {
                 const request = indexedDB.open(name);
                 request.onerror = () => reject(request.error);
                 request.onblocked = () => reject(request.error);
                 request.onsuccess = () => resolve(new Database(request.result));
+            } else {
+                reject(new NotFoundError(name));
             }
         }),
 

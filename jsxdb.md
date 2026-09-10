@@ -33,7 +33,6 @@
 **Author**: Stephan Cieszynski  
 
 * [JSxDB](#module_JSxDB)
-    * [.databases](#module_JSxDB.databases) : <code>Promise</code>
     * [.eq(z)](#module_JSxDB.eq) ⇒ <code>IDBKeyRange</code>
     * [.le(x)](#module_JSxDB.le) ⇒ <code>IDBKeyRange</code>
     * [.lt(x)](#module_JSxDB.lt) ⇒ <code>IDBKeyRange</code>
@@ -41,14 +40,11 @@
     * [.gt(y)](#module_JSxDB.gt) ⇒ <code>IDBKeyRange</code>
     * [.between(x, y, [bx], [by])](#module_JSxDB.between) ⇒ <code>IDBKeyRange</code>
     * [.startsWith(s)](#module_JSxDB.startsWith) ⇒ <code>IDBKeyRange</code>
+    * [.databases()](#module_JSxDB.databases) ⇒ <code>Promise</code>
     * [.init(name, scheme)](#module_JSxDB.init) ⇒ <code>Promise</code>
     * [.open(name)](#module_JSxDB.open) ⇒ <code>Promise</code>
     * [.remove(name)](#module_JSxDB.remove) ⇒ <code>Promise</code>
 
-<a name="module_JSxDB.databases"></a>
-
-### JSxDB.databases : <code>Promise</code>
-**Kind**: static property of [<code>JSxDB</code>](#module_JSxDB)  
 <a name="module_JSxDB.eq"></a>
 
 ### JSxDB.eq(z) ⇒ <code>IDBKeyRange</code>
@@ -129,12 +125,20 @@ starts with - operator (or use ">>" instead)
 | --- | --- |
 | s | <code>String</code> | 
 
+<a name="module_JSxDB.databases"></a>
+
+### JSxDB.databases() ⇒ <code>Promise</code>
+**Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
 <a name="module_JSxDB.init"></a>
 
 ### JSxDB.init(name, scheme) ⇒ <code>Promise</code>
 Create and opens the database to work with
 
 **Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
+**Throws**:
+
+- TypeError - is triggered if no valid schema is available
+
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -163,6 +167,10 @@ const db = await JSxdb.init("test.db", {
 Opens the database to work with
 
 **Kind**: static method of [<code>JSxDB</code>](#module_JSxDB)  
+**Throws**:
+
+- NotFoundError - is triggered if no database with that name is found
+
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -197,7 +205,7 @@ Opens the database to work with
 
 * [Query](#Query)
     * [.reverse()](#Query+reverse) ⇒ <code>this</code>
-    * [.limit(int)](#Query+limit) ⇒ <code>this</code>
+    * [.limit([int])](#Query+limit) ⇒ <code>this</code>
     * [.query()](#Query+query) ⇒ <code>Promise</code>
     * [.remove()](#Query+remove) ⇒ <code>Promise</code>
     * [.update(obj)](#Query+update) ⇒ <code>Promise</code>
@@ -210,12 +218,12 @@ Opens the database to work with
 **Kind**: instance method of [<code>Query</code>](#Query)  
 <a name="Query+limit"></a>
 
-### query.limit(int) ⇒ <code>this</code>
+### query.limit([int]) ⇒ <code>this</code>
 **Kind**: instance method of [<code>Query</code>](#Query)  
 
-| Param | Type |
-| --- | --- |
-| int | <code>Integer</code> | 
+| Param | Type | Default |
+| --- | --- | --- |
+| [int] | <code>Integer</code> | <code>0</code> | 
 
 <a name="Query+query"></a>
 
@@ -261,8 +269,8 @@ Opens the database to work with
 
 * [Store](#Store)
     * [.autoincrement](#Store+autoincrement) : <code>Boolean</code>
-    * [.indexnames](#Store+indexnames) : <code>Array.&lt;String&gt;</code>
-    * [.keypath](#Store+keypath) : <code>String</code>
+    * [.indexNames](#Store+indexNames) : <code>Array.&lt;String&gt;</code>
+    * [.keyPath](#Store+keyPath) : <code>String</code>
     * [.name](#Store+name) : <code>String</code>
     * [.abort()](#Store+abort)
     * [.add(obj, [key])](#Store+add) ⇒ <code>Promise</code>
@@ -285,14 +293,14 @@ Opens the database to work with
 ### store.autoincrement : <code>Boolean</code>
 **Kind**: instance property of [<code>Store</code>](#Store)  
 **Read only**: true  
-<a name="Store+indexnames"></a>
+<a name="Store+indexNames"></a>
 
-### store.indexnames : <code>Array.&lt;String&gt;</code>
+### store.indexNames : <code>Array.&lt;String&gt;</code>
 **Kind**: instance property of [<code>Store</code>](#Store)  
 **Read only**: true  
-<a name="Store+keypath"></a>
+<a name="Store+keyPath"></a>
 
-### store.keypath : <code>String</code>
+### store.keyPath : <code>String</code>
 **Kind**: instance property of [<code>Store</code>](#Store)  
 **Read only**: true  
 <a name="Store+name"></a>
@@ -436,8 +444,8 @@ Opens the database to work with
     * [.name](#Database+name) : <code>String</code>
     * [.storenames](#Database+storenames) : <code>Array.&lt;String&gt;</code>
     * [.version](#Database+version) : <code>Integer</code>
-    * [.read(...storeNames)](#Database+read) ⇒ [<code>Array.&lt;Store&gt;</code>](#Store)
-    * [.write(...storeNames)](#Database+write) ⇒ [<code>Array.&lt;Store&gt;</code>](#Store)
+    * [.read(...storeNames)](#Database+read) ⇒ <code>Promise</code>
+    * [.write(...storeNames)](#Database+write) ⇒ <code>Promise</code>
     * [.close()](#Database+close)
 
 <a name="Database+name"></a>
@@ -457,9 +465,12 @@ Opens the database to work with
 **Read only**: true  
 <a name="Database+read"></a>
 
-### database.read(...storeNames) ⇒ [<code>Array.&lt;Store&gt;</code>](#Store)
+### database.read(...storeNames) ⇒ <code>Promise</code>
 **Kind**: instance method of [<code>Database</code>](#Database)  
-**Returns**: [<code>Array.&lt;Store&gt;</code>](#Store) - Array of stores  
+**Throws**:
+
+- NotFoundError - triggered if one of the specified object stores was not found
+
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -467,9 +478,12 @@ Opens the database to work with
 
 <a name="Database+write"></a>
 
-### database.write(...storeNames) ⇒ [<code>Array.&lt;Store&gt;</code>](#Store)
+### database.write(...storeNames) ⇒ <code>Promise</code>
 **Kind**: instance method of [<code>Database</code>](#Database)  
-**Returns**: [<code>Array.&lt;Store&gt;</code>](#Store) - Array of stores  
+**Throws**:
+
+- NotFoundError - triggered if one of the specified object stores was not found
+
 
 | Param | Type |
 | --- | --- |
