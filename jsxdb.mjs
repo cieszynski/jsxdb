@@ -64,9 +64,11 @@ const prepare = (...keyRangeParams) => {
             case "eq":
                 return eq(data);
             case "><":
+            case "bt":
             case "between":
                 return between(data, ...more);
             case ">>":
+            case "sw":
             case "startsWith":
                 return startsWith(data);
         }
@@ -782,9 +784,11 @@ const ge = (y) => IDBKeyRange.lowerBound(y);
 
 const gt = (y) => IDBKeyRange.lowerBound(y, true);
 
-const between = (x, y, bx, by) => IDBKeyRange.bound(x, y, bx, by);
+const bt = (x, y, bx, by) => IDBKeyRange.bound(x, y, bx, by);
+const between = bt;
 
-const startsWith = (s) => IDBKeyRange.bound(s, s + "\uffff", true, true);
+const sw = (s) => IDBKeyRange.bound(s, s + "\uffff", true, true);
+const startsWith = sw;
 
 const databases = () => indexedDB.databases();
 
@@ -832,6 +836,7 @@ export default {
      * @param {Boolean} [by=false]
      * @returns {IDBKeyRange}
      */
+    bt,
     between,
 
     /** starts with - operator (or use ">>" instead)
@@ -839,6 +844,7 @@ export default {
      * @param {String} s
      * @returns {IDBKeyRange}
      */
+    sw,
     startsWith,
 
     /**
